@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { apiPost } from "../../services/api";
 import { toast } from "vue3-toastify";
-import { removeOwnedProductsFromCart } from "../../services/cart";
+import { useAuthStore, useCartStore } from "../../stores";
 import Button from "../../components/common/Button.vue";
 import Input from "../../components/common/Input.vue";
 import AuthLayout from "./components/AuthLayout.vue";
@@ -11,37 +10,29 @@ import AuthFormHeader from "./components/AuthFormHeader.vue";
 import AuthFooter from "./components/AuthFooter.vue";
 
 const router = useRouter();
+const authStore = useAuthStore();
+const cartStore = useCartStore();
+
 const email = ref("");
 const password = ref("");
 const error = ref("");
-const loading = ref(false);
 
 async function submit() {
-  loading.value = true;
   error.value = "";
   
-  try {
-    const res = await apiPost("/auth/login", { 
-      email: email.value, 
-      password: password.value 
-    });
-    
-    if (res.error) {
-      error.value = res.error;
-      return;
-    }
-    
-    localStorage.setItem("token", res.token);
-    localStorage.setItem("user", JSON.stringify(res.user));
-    await removeOwnedProductsFromCart(res.user.id);
-    
-    await router.push("/");
-    setTimeout(() => location.reload(), 100);
-  } catch (e) {
-    toast.error("Giriş yapılırken bir hata oluştu.");
-  } finally {
-    loading.value = false;
+  const result = await authStore.login(email.value, password.value);
+  
+  if (result.error) {
+    error.value = result.error;
+    return;
   }
+  
+  if (result.user) {
+    await cartStore.removeOwnedProducts(result.user.id);
+  }
+  
+  await router.push("/");
+  setTimeout(() => location.reload(), 100);
 }
 </script>
 
@@ -85,7 +76,7 @@ async function submit() {
         variant="primary" 
         size="lg" 
         full-width
-        :loading="loading"
+        :loading="authStore.loading"
       >
         Giriş Yap
       </Button>

@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { addToCart } from '../../services/cart';
-import { isFavorite, toggleFavorite } from '../../services/favorites';
-import { addToCompare, removeFromCompare, isInCompare, MAX_COMPARE, compareList } from '../../services/compare';
-import { apiPost } from '../../services/api';
+import { useCartStore, useFavoritesStore, useCompareStore, useOrderStore } from '../../stores';
 import { toast } from 'vue3-toastify';
 import Button from '../common/Button.vue';
 
@@ -30,6 +27,10 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const cartStore = useCartStore();
+const favoritesStore = useFavoritesStore();
+const compareStore = useCompareStore();
+const orderStore = useOrderStore();
 
 const firstImage = computed(() => {
   if (!props.product.image_url) return 'https://via.placeholder.com/300';
@@ -66,24 +67,24 @@ const handleFavoriteToggle = async () => {
     return;
   }
 
-  try {
-    const added = await toggleFavorite(props.product.id);
-    toast.success(added ? 'Favorilere eklendi!' : 'Favorilerden çıkarıldı!');
-  } catch {
+  const result = await favoritesStore.toggle(props.product.id);
+  if (result.success) {
+    toast.success(favoritesStore.isFavorite(props.product.id) ? 'Favorilere eklendi!' : 'Favorilerden çıkarıldı!');
+  } else if (result.error) {
     toast.error('Bir hata oluştu!');
   }
 };
 
 const handleCompareToggle = () => {
-  if (isInCompare(props.product.id)) {
-    removeFromCompare(props.product.id);
+  if (compareStore.isInCompare(props.product.id)) {
+    compareStore.remove(props.product.id);
     toast.success('Karşılaştırmadan kaldırıldı!');
   } else {
-    if (compareList.value.length >= MAX_COMPARE) {
-      toast.error(`En fazla ${MAX_COMPARE} ürün karşılaştırabilirsiniz!`);
+    if (compareStore.isFull) {
+      toast.error(`En fazla ${compareStore.MAX_ITEMS} ürün karşılaştırabilirsiniz!`);
       return;
     }
-    const success = addToCompare({
+    const success = compareStore.add({
       id: props.product.id,
       title: props.product.title,
       price: props.product.price,
@@ -107,7 +108,7 @@ const handleAddToCart = () => {
     return;
   }
 
-  addToCart({
+  cartStore.addItem({
     id: props.product.id,
     title: props.product.title,
     price: props.product.price,
@@ -136,14 +137,14 @@ const handleBuyNow = async () => {
     return;
   }
 
-  const res = await apiPost('/orders', {
+  const result = await orderStore.createOrder({
     product_id: props.product.id,
     quantity: 1,
     sizes: props.selectedSize ? [props.selectedSize] : undefined
   });
 
-  if (res.error) {
-    toast.error(res.error);
+  if (result.error) {
+    toast.error(result.error);
     return;
   }
 
@@ -167,7 +168,7 @@ const handleBuyNow = async () => {
     <button v-if="showFavorite" @click.prevent="handleFavoriteToggle"
       class="absolute top-2 left-2 z-10 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition"
       title="Favorilere ekle">
-      <svg class="w-5 h-5" :class="isFavorite(product.id) ? 'text-red-500 fill-current' : 'text-gray-400'" fill="none"
+      <svg class="w-5 h-5" :class="favoritesStore.isFavorite(product.id) ? 'text-red-500 fill-current' : 'text-gray-400'" fill="none"
         stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -176,13 +177,13 @@ const handleBuyNow = async () => {
 
     <!-- Compare Button -->
     <button v-if="showCompare" @click.prevent="handleCompareToggle"
-      :title="isInCompare(product.id) ? 'Karşılaştırmadan çıkar' : 'Karşılaştırmaya ekle'" :class="[
+      :title="compareStore.isInCompare(product.id) ? 'Karşılaştırmadan çıkar' : 'Karşılaştırmaya ekle'" :class="[
         'absolute top-14 left-2 z-10 p-2 rounded-full shadow-lg transition-all',
-        isInCompare(product.id)
+        compareStore.isInCompare(product.id)
           ? 'bg-blue-500 text-white hover:bg-blue-600'
           : 'bg-white/90 hover:bg-white text-gray-600 hover:text-blue-600'
       ]">
-      <svg class="w-5 h-5" :class="{ 'fill-current': isInCompare(product.id) }" fill="none" stroke="currentColor"
+      <svg class="w-5 h-5" :class="{ 'fill-current': compareStore.isInCompare(product.id) }" fill="none" stroke="currentColor"
         viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

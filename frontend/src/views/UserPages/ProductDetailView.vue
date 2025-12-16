@@ -1,25 +1,27 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { apiGet, apiPost } from "../../services/api";
-import { addToCart } from "../../services/cart";
+import { useProductStore, useCartStore, useOrderStore, useAuthStore } from "../../stores";
 import { toast } from "vue3-toastify";
-import Button from "../../components/common/Button.vue";
 import LoadingSpinner from "../../components/common/LoadingSpinner.vue";
-import Card from "../../components/common/Card.vue";
+import ProductImageGallery from "./components/ProductImageGallery.vue";
+import ProductInfo from "./components/ProductInfo.vue";
 
 const route = useRoute();
 const router = useRouter();
+const productStore = useProductStore();
+const cartStore = useCartStore();
+const orderStore = useOrderStore();
+const authStore = useAuthStore();
+
 const product = ref<any>(null);
-const loading = ref(true);
 const currentImageIndex = ref(0);
 const selectedSize = ref("");
-const currentUserId = ref<number | null>(null);
 const quantity = ref(1);
 
 const isOwnProduct = computed(() => {
-  if (!currentUserId.value || !product.value?.seller_id) return false;
-  return product.value.seller_id === currentUserId.value;
+  if (!authStore.userId || !product.value?.seller_id) return false;
+  return product.value.seller_id === authStore.userId;
 });
 
 const features = computed(() => {
@@ -40,18 +42,13 @@ const displayFeatures = computed(() => {
 });
 
 onMounted(async () => {
-  const userStr = localStorage.getItem("user");
-  if (userStr) {
-    currentUserId.value = JSON.parse(userStr).id;
-  }
   await loadProduct();
 });
 
 async function loadProduct() {
   try {
-    loading.value = true;
     const productId = route.params.id;
-    const data = await apiGet(`/products/${productId}`);
+    const data = await productStore.fetchProduct(productId as string);
     product.value = data;
 
     if (product.value.image_url) {
@@ -68,8 +65,6 @@ async function loadProduct() {
     console.error("Ürün yüklenirken hata:", error);
     toast.error("Ürün bulunamadı!");
     router.push("/");
-  } finally {
-    loading.value = false;
   }
 }
 
@@ -85,7 +80,7 @@ const handleAddToCart = () => {
   }
 
   for (let i = 0; i < quantity.value; i++) {
-    addToCart({
+    cartStore.addItem({
       id: product.value.id,
       title: product.value.title,
       price: product.value.price,
@@ -116,14 +111,14 @@ const handleBuyNow = async () => {
     return;
   }
 
-  const res = await apiPost("/orders", {
+  const result = await orderStore.createOrder({
     product_id: product.value.id,
     quantity: quantity.value,
     sizes: selectedSize.value ? [selectedSize.value] : undefined
   });
 
-  if (res.error) {
-    toast.error(res.error);
+  if (result.error) {
+    toast.error(result.error);
     return;
   }
 
@@ -147,7 +142,7 @@ const prevImage = () => {
 </script>
 
 <template>
-  <LoadingSpinner v-if="loading" />
+  <LoadingSpinner v-if="productStore.loading" />
 
   <div v-else-if="product" class="max-w-6xl mx-auto px-4 py-6">
     <button @click="router.back()" class="text-gray-600 hover:text-gray-900 mb-4 text-sm flex items-center gap-1 transition">
@@ -159,90 +154,28 @@ const prevImage = () => {
 
     <div class="grid md:grid-cols-2 gap-6">
       <!-- Resimler -->
-      <div>
-        <div class="relative border rounded-lg overflow-hidden bg-white mb-3">
-          <img :src="product.images[currentImageIndex]" :alt="product.title" class="w-full aspect-square object-cover" />
-          <button v-if="product.images.length > 1" @click="prevImage" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1.5 shadow hover:bg-gray-100 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button v-if="product.images.length > 1" @click="nextImage" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1.5 shadow hover:bg-gray-100 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        <div v-if="product.images.length > 1" class="flex gap-2 overflow-x-auto">
-          <button 
-            v-for="(image, index) in product.images" 
-            :key="index" 
-            @click="changeImage(index)" 
-            :class="['flex-shrink-0 w-16 h-16 rounded border-2', currentImageIndex === index ? 'border-gray-900' : 'border-gray-200']"
-          >
-            <img :src="image" class="w-full h-full object-cover rounded" />
-          </button>
-        </div>
-      </div>
+      <ProductImageGallery
+        :images="product.images"
+        :current-index="currentImageIndex"
+        :title="product.title"
+        @change-image="changeImage"
+        @prev-image="prevImage"
+        @next-image="nextImage"
+      />
 
       <!-- Bilgiler -->
-      <div>
-        <h1 class="text-2xl font-bold mb-2">{{ product.title }}</h1>
-        <p class="text-gray-600 text-sm mb-3">{{ product.description }}</p>
-        <div class="text-3xl font-bold text-gray-900 mb-4">{{ product.price }} TL</div>
-        <div class="text-sm text-gray-600 mb-4">
-          Satıcı: <span class="font-medium text-gray-900">{{ product.seller_name || product.seller_email }}</span>
-        </div>
-
-        <Card v-if="displayFeatures.length" padding="md" class="mb-4">
-          <div class="text-sm font-semibold mb-2">Özellikler</div>
-          <div class="text-sm space-y-1">
-            <div v-for="[key, value] in displayFeatures" :key="key" class="flex">
-              <span class="text-gray-600 w-24">{{ key }}:</span>
-              <span class="font-medium">{{ value }}</span>
-            </div>
-          </div>
-        </Card>
-
-        <div v-if="features?.sizes" class="mb-4">
-          <div class="text-sm font-semibold mb-2">Beden</div>
-          <div class="flex flex-wrap gap-2">
-            <label v-for="size in features.sizes" :key="size" class="flex items-center gap-1 cursor-pointer">
-              <input type="radio" :value="size" v-model="selectedSize" name="sizeGroup" class="w-3 h-3" />
-              {{ size }}
-            </label>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <div class="text-sm font-semibold mb-2">Miktar</div>
-          <div class="flex items-center gap-2">
-            <Button size="sm" @click="quantity = Math.max(1, quantity - 1)">-</Button>
-            <span class="w-12 text-center">{{ quantity }}</span>
-            <Button size="sm" @click="quantity = quantity + 1">+</Button>
-          </div>
-        </div>
-
-        <div v-if="isOwnProduct" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-          Kendi ürününüzü satın alamazsınız
-        </div>
-
-        <div class="flex gap-2">
-          <Button flex @click="handleAddToCart" :disabled="isOwnProduct">
-            Sepete Ekle
-          </Button>
-          <Button flex variant="success" @click="handleBuyNow" :disabled="isOwnProduct">
-            Satın Al
-          </Button>
-        </div>
-
-        <div class="mt-4 pt-3">
-          <RouterLink :to="`/kategori/${product.category_slug}`" class="text-sm text-gray-600 hover:text-gray-900 transition">
-            Kategori: {{ product.category_name }}
-          </RouterLink>
-        </div>
-      </div>
+      <ProductInfo
+        :product="product"
+        :features="features"
+        :display-features="displayFeatures"
+        :selected-size="selectedSize"
+        :quantity="quantity"
+        :is-own-product="isOwnProduct"
+        @update:selected-size="selectedSize = $event"
+        @update:quantity="quantity = $event"
+        @add-to-cart="handleAddToCart"
+        @buy-now="handleBuyNow"
+      />
     </div>
   </div>
 </template>

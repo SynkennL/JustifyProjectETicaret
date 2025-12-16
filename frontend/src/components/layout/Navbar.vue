@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { cart, clearGuestCart } from "../../services/cart";
-import { favoriteIds, loadFavoriteIds, clearFavorites } from "../../services/favorites";
-import { compareList } from "../../services/compare";
-import { apiGet } from "../../services/api";
+import { useCartStore, useFavoritesStore, useCompareStore, useProductStore, useAuthStore } from "../../stores";
 
 const isMobileMenuOpen = ref(false)
 const isDropdownOpenMobile = ref(false)
@@ -16,7 +13,11 @@ const isSearching = ref(false)
 const showSearchResults = ref(false)
 
 const router = useRouter();
-const user = ref<{ email?: string, role?: string, name: string } | null>(null);
+const cartStore = useCartStore();
+const favoritesStore = useFavoritesStore();
+const compareStore = useCompareStore();
+const productStore = useProductStore();
+const authStore = useAuthStore();
 
 
 const categories = [
@@ -37,37 +38,30 @@ const iconButtons = computed(() => [
     to: "/karsilastir",
     icon: "compare",
     title: "Karşılaştır",
-    badge: compareList.value.length,
+    badge: compareStore.count,
     badgeColor: "bg-blue-600"
   },
   {
     to: "/favorilerim",
     icon: "heart",
     title: "Favorilerim",
-    badge: favoriteIds.value.size,
+    badge: favoritesStore.count,
     badgeColor: "bg-red-600"
   },
   {
     to: "/cart",
     icon: "cart",
     title: "Sepetim",
-    badge: cart.value.reduce((acc, i) => acc + i.quantity, 0),
+    badge: cartStore.totalItems,
     badgeColor: "bg-slate-900"
   }
 ]);
 
 
-function loadUserFromStorage() {
-  const u = localStorage.getItem("user");
-  user.value = u ? JSON.parse(u) : null;
-}
-
 function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  user.value = null;
-  clearGuestCart();
-  clearFavorites();
+  authStore.logout();
+  cartStore.clearGuest();
+  favoritesStore.clear();
   router.push("/");
 }
 
@@ -126,7 +120,7 @@ async function performSearch(query: string) {
 
   isSearching.value = true;
   try {
-    const products = await apiGet("/products");
+    const products = await productStore.fetchProducts();
     const filtered = products.filter((p: any) =>
       p.title.toLowerCase().includes(query.toLowerCase()) ||
       p.description?.toLowerCase().includes(query.toLowerCase()) ||
@@ -143,8 +137,7 @@ async function performSearch(query: string) {
 
 
 onMounted(() => {
-  loadUserFromStorage();
-  loadFavoriteIds();
+  favoritesStore.loadIds();
 });
 </script>
 
@@ -222,7 +215,7 @@ onMounted(() => {
           </RouterLink>
 
           <!-- User Menu -->
-          <div v-if="!user" class="flex items-center gap-2 border-gray-200">
+          <div v-if="!authStore.isLoggedIn" class="flex items-center gap-2 border-gray-200">
             <RouterLink to="/login">
               <button class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-slate-900 transition-colors">Giriş</button>
             </RouterLink>
@@ -243,12 +236,12 @@ onMounted(() => {
 
             <div v-if="isUserDropdownOpen" @click="isUserDropdownOpen = false" class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-100 py-1">
               <div class="px-4 py-3 border-b border-gray-100">
-                <p class="text-sm font-medium text-gray-900 truncate">{{ user.name || user.email }}</p>
+                <p class="text-sm font-medium text-gray-900 truncate">{{ authStore.user?.name || authStore.user?.email }}</p>
               </div>
 
               <RouterLink to="/profil" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 transition-colors">Profilim</RouterLink>
               <RouterLink to="/customer-panel" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 transition-colors">Kullanıcı Paneli</RouterLink>
-              <RouterLink v-if="user.role === 'admin'" to="/admin" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 transition-colors">Admin Paneli</RouterLink>
+              <RouterLink v-if="authStore.isAdmin" to="/admin" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-slate-50 transition-colors">Admin Paneli</RouterLink>
               
               <button @click="logout" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100">Çıkış Yap</button>
             </div>
@@ -330,19 +323,19 @@ onMounted(() => {
         </RouterLink>
 
         <!-- Mobile User Menu -->
-        <div v-if="!user" class="pt-3 space-y-2 border-t border-gray-100">
+        <div v-if="!authStore.isLoggedIn" class="pt-3 space-y-2 border-t border-gray-100">
           <RouterLink to="/login" @click="closeMobileMenu" class="block px-4 py-3 text-sm font-medium text-center text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all">Giriş Yap</RouterLink>
           <RouterLink to="/register" @click="closeMobileMenu" class="block px-4 py-3 text-sm font-medium text-center text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-all">Kayıt Ol</RouterLink>
         </div>
 
         <div v-else class="pt-3 space-y-1 border-t border-gray-100">
           <div class="px-4 py-3 bg-slate-50 rounded-lg mb-2">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ user.email || '' }}</p>
+            <p class="text-sm font-medium text-gray-900 truncate">{{ authStore.user?.email || '' }}</p>
           </div>
 
           <RouterLink to="/profil" @click="closeMobileMenu" class="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all">Profilim</RouterLink>
           <RouterLink to="/customer-panel" @click="closeMobileMenu" class="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all">Kullanıcı Paneli</RouterLink>
-          <RouterLink v-if="user.role === 'admin'" to="/admin" @click="closeMobileMenu" class="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all">Admin Paneli</RouterLink>
+          <RouterLink v-if="authStore.isAdmin" to="/admin" @click="closeMobileMenu" class="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all">Admin Paneli</RouterLink>
           
           <button @click="logout" class="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-all">Çıkış Yap</button>
         </div>

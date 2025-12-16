@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive } from "vue";
+import { ref, onMounted, watch, reactive, computed } from "vue";
 import { useRoute } from "vue-router";
-import { apiGet } from "../../services/api";
-import { loadFavoriteIds } from "../../services/favorites";
+import { useProductStore, useFavoritesStore, useAuthStore } from "../../stores";
 import ProductCard from "../../components/product/ProductCard.vue";
 import EmptyState from "../../components/common/EmptyState.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
 
 const route = useRoute();
+const productStore = useProductStore();
+const favoritesStore = useFavoritesStore();
+const authStore = useAuthStore();
+
 const categorySlug = ref(String(route.params.name));
-const products = ref<any[]>([]);
-const currentUserId = ref<number | null>(null);
 const selectedSizes = reactive<Record<number, string>>({});
 
 const categoryTitles: Record<string, string> = {
@@ -19,6 +20,10 @@ const categoryTitles: Record<string, string> = {
   "ayakkabi": "Ayakkabı",
   "cocuk-giyim": "Çocuk Giyim",
 };
+
+const products = computed(() => {
+  return productStore.products.filter(p => p.seller_id !== authStore.userId);
+});
 
 watch(
   () => route.params.name,
@@ -29,28 +34,23 @@ watch(
 );
 
 onMounted(() => {
-  const userStr = localStorage.getItem("user");
-  if (userStr) {
-    currentUserId.value = JSON.parse(userStr).id;
-  }
   loadProducts();
-  loadFavoriteIds();
+  favoritesStore.loadIds();
 });
 
 async function loadProducts() {
   if (!categorySlug.value) return;
-  const res = await apiGet(`/products?category=${categorySlug.value}`);
-  products.value = res.filter((p: any) => p.seller_id !== currentUserId.value);
+  await productStore.fetchProducts(categorySlug.value);
 }
 
 function isOwnProduct(product: any): boolean {
-  if (!currentUserId.value || !product?.seller_id) return false;
-  return product.seller_id === currentUserId.value;
+  if (!authStore.userId || !product?.seller_id) return false;
+  return product.seller_id === authStore.userId;
 }
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="min-h-screen p-6">
     <PageHeader 
       :title="categoryTitles[categorySlug] || 'Kategori'" 
       show-back

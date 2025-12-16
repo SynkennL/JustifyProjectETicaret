@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { apiPost } from "../../services/api";
-import { clearGuestCart } from "../../services/cart";
 import { toast } from "vue3-toastify";
+import { useAuthStore, useCartStore } from "../../stores";
 import Button from "../../components/common/Button.vue";
 import Input from "../../components/common/Input.vue";
 import AuthLayout from "./components/AuthLayout.vue";
@@ -12,41 +11,29 @@ import AuthFooter from "./components/AuthFooter.vue";
 import RoleSelector from "./components/RoleSelector.vue";
 
 const router = useRouter();
+const authStore = useAuthStore();
+const cartStore = useCartStore();
+
 const name = ref("");
 const email = ref("");
 const password = ref("");
 const role = ref<'customer' | 'admin'>("customer");
 const error = ref("");
-const loading = ref(false);
 
 async function submit() {
-  loading.value = true;
   error.value = "";
   
-  try {
-    const res = await apiPost("/auth/register", {
-      name: name.value,
-      email: email.value,
-      password: password.value,
-      role: role.value
-    });
-    
-    if (res.error) {
-      error.value = res.error;
-      return;
-    }
-    
-    localStorage.setItem("token", res.token);
-    localStorage.setItem("user", JSON.stringify(res.user));
-    clearGuestCart();
-
-    await router.push("/");
-    setTimeout(() => location.reload(), 100);
-  } catch (e) {
-    toast.error("Kayıt olurken bir hata oluştu.");
-  } finally {
-    loading.value = false;
+  const result = await authStore.register(name.value, email.value, password.value, role.value);
+  
+  if (result.error) {
+    error.value = result.error;
+    return;
   }
+  
+  cartStore.clearGuest();
+
+  await router.push("/");
+  setTimeout(() => location.reload(), 100);
 }
 </script>
 
@@ -101,7 +88,7 @@ async function submit() {
         variant="primary" 
         size="lg" 
         full-width 
-        :loading="loading"
+        :loading="authStore.loading"
       >
         Hesap Oluştur
       </Button>

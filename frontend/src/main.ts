@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import './style.css'
 import App from './App.vue'
 import 'preline'
@@ -7,6 +8,7 @@ import Vue3Toastify from 'vue3-toastify';
 import { router } from './router'
 
 const app = createApp(App)
+const pinia = createPinia()
 
 router.afterEach(() => {
   setTimeout(() => {
@@ -16,9 +18,9 @@ router.afterEach(() => {
   }, 100);
 });
 
+app.use(pinia)
 app.use(Vue3Toastify, {
   autoClose: 3000,
   position: "top-right"
 })
-
 app.use(router).mount('#app')

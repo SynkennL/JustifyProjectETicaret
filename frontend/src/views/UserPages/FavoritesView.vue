@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from "vue";
+import { ref, onMounted, reactive, computed } from "vue";
 import { useRouter } from "vue-router";
-import { apiGet } from "../../services/api";
 import { toast } from "vue3-toastify";
+import { useFavoritesStore, useAuthStore } from "../../stores";
 import ProductCard from "../../components/product/ProductCard.vue";
 import EmptyState from "../../components/common/EmptyState.vue";
 import LoadingSpinner from "../../components/common/LoadingSpinner.vue";
@@ -10,10 +10,10 @@ import PageHeader from "../../components/layout/PageHeader.vue";
 import Button from "../../components/common/Button.vue";
 
 const router = useRouter();
-const favorites = ref<any[]>([]);
-const loading = ref(true);
+const favoritesStore = useFavoritesStore();
+const authStore = useAuthStore();
+
 const selectedSizes = reactive<Record<number, string>>({});
-const currentUserId = ref<number | null>(null);
 
 onMounted(async () => {
   const token = localStorage.getItem("token");
@@ -23,35 +23,17 @@ onMounted(async () => {
     return;
   }
 
-  const userStr = localStorage.getItem("user");
-  if (userStr) {
-    currentUserId.value = JSON.parse(userStr).id;
-  }
-
-  await loadFavorites();
+  await favoritesStore.fetchFavorites();
 });
 
-async function loadFavorites() {
-  try {
-    loading.value = true;
-    const data = await apiGet("/favorites");
-    favorites.value = data;
-  } catch (error) {
-    console.error("Favoriler yüklenemedi:", error);
-    toast.error("Favoriler yüklenirken bir hata oluştu!");
-  } finally {
-    loading.value = false;
-  }
-}
-
 function isOwnProduct(product: any): boolean {
-  if (!currentUserId.value || !product?.seller_id) return false;
-  return product.seller_id === currentUserId.value;
+  if (!authStore.userId || !product?.seller_id) return false;
+  return product.seller_id === authStore.userId;
 }
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <PageHeader 
       title="Favorilerim" 
       description="Beğendiğiniz ürünleri buradan takip edebilirsiniz"
@@ -68,10 +50,10 @@ function isOwnProduct(product: any): boolean {
       </template>
     </PageHeader>
 
-    <LoadingSpinner v-if="loading" />
+    <LoadingSpinner v-if="favoritesStore.loading" />
 
     <EmptyState
-      v-else-if="favorites.length === 0"
+      v-else-if="favoritesStore.favorites.length === 0"
       title="Henüz favori ürününüz yok"
       description="Beğendiğiniz ürünleri favorilere ekleyerek kolayca takip edebilirsiniz"
       icon="favorite"
@@ -81,13 +63,13 @@ function isOwnProduct(product: any): boolean {
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       <ProductCard
-        v-for="product in favorites"
+        v-for="product in favoritesStore.favorites"
         :key="product.id"
         :product="product"
         :selected-size="selectedSizes[product.id]"
         @update:selected-size="selectedSizes[product.id] = $event"
         :is-owned="isOwnProduct(product)"
-        @refresh="loadFavorites"
+        @refresh="favoritesStore.fetchFavorites()"
       />
     </div>
   </div>
