@@ -23,7 +23,16 @@ const emit = defineEmits<{
   <div>
     <h1 class="text-2xl font-bold mb-2">{{ product.title }}</h1>
     <p class="text-gray-600 text-sm mb-3">{{ product.description }}</p>
-    <div class="text-3xl font-bold text-gray-900 mb-4">{{ product.price }} TL</div>
+    
+    <!-- Price with discount support -->
+    <div class="mb-4">
+      <template v-if="product.discount_price">
+        <span class="text-xl text-gray-400 line-through mr-2">{{ product.price }} TL</span>
+        <span class="text-3xl font-bold text-red-600">{{ product.discount_price }} TL</span>
+      </template>
+      <div v-else class="text-3xl font-bold text-gray-900">{{ product.price }} TL</div>
+    </div>
+    
     <div class="text-sm text-gray-600 mb-4">
       Satıcı: <span class="font-medium text-gray-900">{{ product.seller_name || product.seller_email }}</span>
     </div>

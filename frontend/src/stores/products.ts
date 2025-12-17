@@ -7,6 +7,7 @@ interface Product {
     title: string;
     description: string;
     price: number;
+    discount_price?: number | null;
     image_url: string;
     category_id: number;
     category_name: string;
@@ -110,6 +111,21 @@ export const useProductStore = defineStore('products', () => {
         }
     };
 
+    const updateProduct = async (id: number, productData: any) => {
+        try {
+            const response = await api.patch(`/products/${id}`, productData);
+            // Update local state
+            const index = products.value.findIndex(p => p.id === id);
+            if (index > -1) {
+                products.value[index] = response.data;
+            }
+            return { success: true, data: response.data };
+        } catch (error: any) {
+            const message = error.response?.data?.error || 'Ürün güncellenirken hata.';
+            return { error: message };
+        }
+    };
+
     const filterByUserId = (userId: number | null | undefined) => {
         if (!userId) return products.value;
         return products.value.filter(p => p.seller_id !== userId);
@@ -127,6 +143,7 @@ export const useProductStore = defineStore('products', () => {
         fetchCategoryProducts,
         fetchProduct,
         createProduct,
+        updateProduct,
         deleteProduct,
         filterByUserId
     };

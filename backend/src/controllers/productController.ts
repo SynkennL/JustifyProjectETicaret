@@ -134,3 +134,105 @@ export async function deleteProduct(req: Request, res: Response) {
     res.status(500).json({ error: "Sunucu hatası" });
   }
 }
+
+export async function updateProduct(req: Request, res: Response) {
+  const { id } = req.params;
+  const { title, description, price, discount_price, category_id, images, features, sizes } = req.body;
+  const user_id = (req as any).user?.id;
+  const user_role = (req as any).user?.role;
+
+  if (!user_id) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    // Check if product exists and user has permission
+    const productCheck = await pool.query(
+      "SELECT id, seller_id FROM products WHERE id = $1",
+      [id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Ürün bulunamadı" });
+    }
+
+    const product = productCheck.rows[0];
+    if (user_role !== 'admin' && product.seller_id !== user_id) {
+      return res.status(403).json({ error: "Bu ürünü düzenleme yetkiniz yok" });
+    }
+
+    // Validate discount_price
+    if (discount_price !== null && discount_price !== undefined) {
+      if (price && discount_price >= price) {
+        return res.status(400).json({ error: "İndirimli fiyat normal fiyattan düşük olmalıdır" });
+      }
+    }
+
+    // Prepare features
+    const featuresObj = features && typeof features === 'object' ? { ...features } : (features ? JSON.parse(features) : {});
+    if (sizes && Array.isArray(sizes)) {
+      featuresObj.sizes = sizes;
+    }
+    const featuresJson = Object.keys(featuresObj).length ? JSON.stringify(featuresObj) : null;
+
+    // Prepare images
+    const imagesJson = images && Array.isArray(images) && images.length > 0 ? JSON.stringify(images) : null;
+
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (title !== undefined) {
+      updates.push(`title = $${paramIndex++}`);
+      values.push(title);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description || null);
+    }
+    if (price !== undefined) {
+      updates.push(`price = $${paramIndex++}`);
+      values.push(price);
+    }
+    if (discount_price !== undefined) {
+      updates.push(`discount_price = $${paramIndex++}`);
+      values.push(discount_price || null);
+    }
+    if (category_id !== undefined) {
+      updates.push(`category_id = $${paramIndex++}`);
+      values.push(category_id || null);
+    }
+    if (images !== undefined) {
+      updates.push(`image_url = $${paramIndex++}`);
+      values.push(imagesJson);
+    }
+    if (features !== undefined || sizes !== undefined) {
+      updates.push(`features = $${paramIndex++}`);
+      values.push(featuresJson);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "Güncellenecek alan belirtilmedi" });
+    }
+
+    values.push(id);
+    const query = await pool.query(
+      `UPDATE products SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+
+    // Fetch full product with joins
+    const fullProduct = await pool.query(
+      `SELECT p.*, c.name as category_name, c.slug as category_slug, u.email as seller_email, u.name as seller_name
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       LEFT JOIN users u ON p.seller_id = u.id
+       WHERE p.id = $1`,
+      [id]
+    );
+
+    res.json(fullProduct.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+}

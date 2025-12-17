@@ -6,6 +6,7 @@ import { toast } from "vue3-toastify";
 import Button from "../../components/common/Button.vue";
 import Card from "../../components/common/Card.vue";
 import Modal from "../../components/common/Modal.vue";
+import Input from "../../components/common/Input.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
 import ProductForm from "../../components/product/ProductForm.vue";
 import MyProductsList from "./components/MyProductsList.vue";
@@ -25,6 +26,18 @@ const myProducts = computed(() => {
 // Delete Modal State
 const showDeleteModal = ref(false);
 const productToDelete = ref<number | null>(null);
+
+// Edit Modal State
+const showEditModal = ref(false);
+const productToEdit = ref<any>(null);
+const editForm = ref({
+  title: "",
+  description: "",
+  price: 0,
+  hasDiscount: false,
+  discount_price: null as number | null,
+  category_id: null as number | null
+});
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
@@ -100,6 +113,61 @@ async function confirmDelete() {
   toast.success("Ürün başarıyla silindi!");
 }
 
+// Edit Modal Functions
+function openEditModal(product: any) {
+  productToEdit.value = product;
+  editForm.value = {
+    title: product.title,
+    description: product.description || "",
+    price: product.price,
+    hasDiscount: !!product.discount_price,
+    discount_price: product.discount_price || null,
+    category_id: product.category_id
+  };
+  showEditModal.value = true;
+}
+
+function closeEditModal() {
+  showEditModal.value = false;
+  productToEdit.value = null;
+}
+
+async function confirmEdit() {
+  if (!productToEdit.value) return;
+
+  // Validation
+  if (!editForm.value.title || !editForm.value.price) {
+    toast.error("Başlık ve fiyat zorunludur!");
+    return;
+  }
+
+  if (editForm.value.hasDiscount && editForm.value.discount_price) {
+    if (editForm.value.discount_price >= editForm.value.price) {
+      toast.error("İndirimli fiyat normal fiyattan düşük olmalıdır!");
+      return;
+    }
+  }
+
+  const updateData = {
+    title: editForm.value.title,
+    description: editForm.value.description,
+    price: editForm.value.price,
+    discount_price: editForm.value.hasDiscount ? editForm.value.discount_price : null,
+    category_id: editForm.value.category_id
+  };
+
+  const result = await productStore.updateProduct(productToEdit.value.id, updateData);
+  
+  if (result.error) {
+    toast.error(result.error);
+    return;
+  }
+
+  toast.success("Ürün başarıyla güncellendi!");
+  closeEditModal();
+  await productStore.fetchProducts();
+}
+
 async function updateOrderStatus(orderId: number, newStatus: string) {
   const result = await orderStore.updateOrderStatus(orderId, newStatus);
 
@@ -133,6 +201,7 @@ async function updateOrderStatus(orderId: number, newStatus: string) {
     <MyProductsList
       :products="myProducts"
       @delete-product="openDeleteModal"
+      @edit-product="openEditModal"
     />
 
     <!-- Siparişler -->
@@ -153,6 +222,90 @@ async function updateOrderStatus(orderId: number, newStatus: string) {
       <template #footer>
         <Button variant="ghost" @click="showDeleteModal = false">İptal</Button>
         <Button variant="danger" @click="confirmDelete">Evet, Sil</Button>
+      </template>
+    </Modal>
+
+    <!-- Düzenleme Modalı -->
+    <Modal
+      v-model="showEditModal"
+      title="İlanı Düzenle"
+      size="lg"
+    >
+      <div class="space-y-4">
+        <Input 
+          v-model="editForm.title" 
+          label="Başlık" 
+          placeholder="Ürün başlığı"
+        />
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+          <textarea 
+            v-model="editForm.description" 
+            placeholder="Açıklama"
+            rows="3"
+            class="w-full py-3 px-4 border-2 border-gray-200 rounded-lg focus:border-slate-900 focus:outline-none"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <Input 
+            v-model.number="editForm.price" 
+            type="number" 
+            label="Fiyat (TL)" 
+            placeholder="Fiyat"
+          />
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+            <select 
+              v-model="editForm.category_id" 
+              class="w-full py-3 px-4 border-2 border-gray-200 rounded-lg focus:border-slate-900 focus:outline-none"
+            >
+              <option :value="null">Kategori seç</option>
+              <option v-for="c in categoryStore.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- İndirimli Fiyat Toggle -->
+        <div class="border-t pt-4">
+          <div class="flex items-center gap-3 mb-3">
+            <button
+              type="button"
+              @click="editForm.hasDiscount = !editForm.hasDiscount"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                editForm.hasDiscount ? 'bg-red-500' : 'bg-gray-200'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  editForm.hasDiscount ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+            <span class="text-sm font-medium text-gray-700">İndirimli</span>
+          </div>
+          
+          <div v-if="editForm.hasDiscount" class="animate-in slide-in-from-top-2">
+            <Input 
+              v-model.number="editForm.discount_price" 
+              type="number" 
+              label="İndirimli Fiyat (TL)" 
+              placeholder="İndirimli fiyat girin"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              İndirimli fiyat normal fiyattan ({{ editForm.price }} TL) düşük olmalıdır.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button variant="ghost" @click="closeEditModal">İptal</Button>
+        <Button variant="primary" @click="confirmEdit">Kaydet</Button>
       </template>
     </Modal>
   </div>

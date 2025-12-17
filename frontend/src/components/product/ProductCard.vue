@@ -236,7 +236,13 @@ const handleBuyNow = async () => {
 
       <!-- Price -->
       <div class="flex items-center justify-between mb-3 mt-auto">
-        <span class="text-lg font-bold text-gray-900">{{ product.price }} TL</span>
+        <div>
+          <template v-if="product.discount_price">
+            <span class="text-sm text-gray-400 line-through mr-1">{{ product.price }} TL</span>
+            <span class="text-lg font-bold text-red-600">{{ product.discount_price }} TL</span>
+          </template>
+          <span v-else class="text-lg font-bold text-gray-900">{{ product.price }} TL</span>
+        </div>
         <span v-if="product.category_name" class="text-xs text-gray-500">{{ product.category_name }}</span>
       </div>
 

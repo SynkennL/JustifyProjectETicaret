@@ -9,6 +9,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'deleteProduct', productId: number): void;
+  (e: 'editProduct', product: any): void;
 }>();
 
 function getFirstImage(imageUrl: string | null | undefined): string {
@@ -67,9 +68,21 @@ function featureEntries(features: any) {
           </div>
         </div>
         
-        <p class="font-bold text-lg mb-3 text-gray-900">{{ product.price }} TL</p>
-        <Button variant="danger" full-width @click="emit('deleteProduct', product.id)">Sil</Button>
+        <!-- Price with discount support -->
+        <div class="mb-3">
+          <template v-if="product.discount_price">
+            <span class="text-sm text-gray-400 line-through mr-2">{{ product.price }} TL</span>
+            <span class="font-bold text-lg text-red-600">{{ product.discount_price }} TL</span>
+          </template>
+          <p v-else class="font-bold text-lg text-gray-900">{{ product.price }} TL</p>
+        </div>
+        
+        <div class="flex gap-2">
+          <Button variant="outline" flex @click="emit('editProduct', product)">Düzenle</Button>
+          <Button variant="danger" flex @click="emit('deleteProduct', product.id)">Sil</Button>
+        </div>
       </Card>
     </div>
   </Card>
 </template>
+
