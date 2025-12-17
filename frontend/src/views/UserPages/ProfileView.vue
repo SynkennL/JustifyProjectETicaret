@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
 import Card from "../../components/common/Card.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
 import ProfileForm from "./components/ProfileForm.vue";
@@ -10,6 +10,7 @@ import QuickLinks from "./components/QuickLinks.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const isEditing = ref(false);
 const isLoading = ref(false);

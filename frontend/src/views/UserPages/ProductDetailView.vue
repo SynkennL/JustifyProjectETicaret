@@ -2,7 +2,9 @@
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useProductStore, useCartStore, useOrderStore, useAuthStore } from "../../stores";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
+
+const toast = useToast();
 import LoadingSpinner from "../../components/common/LoadingSpinner.vue";
 import ProductImageGallery from "./components/ProductImageGallery.vue";
 import ProductInfo from "./components/ProductInfo.vue";

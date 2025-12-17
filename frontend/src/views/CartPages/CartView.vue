@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useCartStore, useOrderStore } from "../../stores";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
 import Button from "../../components/common/Button.vue";
 import Modal from "../../components/common/Modal.vue";
 import EmptyState from "../../components/common/EmptyState.vue";
@@ -13,6 +13,7 @@ import CartSummary from "./components/CartSummary.vue";
 const router = useRouter();
 const cartStore = useCartStore();
 const orderStore = useOrderStore();
+const toast = useToast();
 
 // Checkout Modal State
 const showCheckoutModal = ref(false);

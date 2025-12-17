@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useCompareStore, useCartStore } from "../../stores";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
 import Button from "../../components/common/Button.vue";
 import EmptyState from "../../components/common/EmptyState.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
@@ -11,6 +11,7 @@ import CompareTable from "./components/CompareTable.vue";
 const router = useRouter();
 const compareStore = useCompareStore();
 const cartStore = useCartStore();
+const toast = useToast();
 
 const getFirstImage = (imageUrl: string | null | undefined): string => {
   if (!imageUrl) return 'https://via.placeholder.com/300';

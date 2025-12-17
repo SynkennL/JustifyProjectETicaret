@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useCategoryStore, useProductStore, useAuthStore } from "../../stores";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
 import Button from "../../components/common/Button.vue";
 import Modal from "../../components/common/Modal.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
@@ -13,6 +13,7 @@ const router = useRouter();
 const categoryStore = useCategoryStore();
 const productStore = useProductStore();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const catName = ref("");
 const catSlug = ref("");

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useProductStore, useOrderStore, useCategoryStore, useAuthStore } from "../../stores";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
 import Button from "../../components/common/Button.vue";
 import Card from "../../components/common/Card.vue";
 import Modal from "../../components/common/Modal.vue";
@@ -18,6 +18,7 @@ const productStore = useProductStore();
 const orderStore = useOrderStore();
 const categoryStore = useCategoryStore();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const myProducts = computed(() => {
   return productStore.products.filter(p => p.seller_id === authStore.userId);

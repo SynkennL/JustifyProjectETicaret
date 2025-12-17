@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, computed } from "vue";
 import { useRouter } from "vue-router";
-import { toast } from "vue3-toastify";
+import { useToast } from "../../composables/useToast";
 import { useFavoritesStore, useAuthStore } from "../../stores";
 import ProductCard from "../../components/product/ProductCard.vue";
 import EmptyState from "../../components/common/EmptyState.vue";
@@ -12,6 +12,7 @@ import Button from "../../components/common/Button.vue";
 const router = useRouter();
 const favoritesStore = useFavoritesStore();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const selectedSizes = reactive<Record<number, string>>({});
 
