@@ -5,7 +5,7 @@ defineProps<{
   address?: string;
 }>();
 
-const defaultAddress = "Barbaros Hayrettin Paşa, 1993. Sk. Ferah Residence No:22/A D:117, 34522 Esenyurt/İstanbul";
+const defaultAddress = "Barbaros Hayrettin Paşa, 1993. Sk. Ferah Residence No:22/A D:119, 34522 Esenyurt/İstanbul";
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const defaultAddress = "Barbaros Hayrettin Paşa, 1993. Sk. Ferah Residence No:2
       <!-- Google Maps Embed -->
       <div class="rounded-xl overflow-hidden shadow-lg border border-gray-200">
         <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.123456789!2d28.6731!3d41.0369!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14caa5e0b59f123c%3A0x987654321abcdef!2sFerah%20Residence%2C%20Barbaros%20Hayrettin%20Pa%C5%9Fa%2C%201993.%20Sk.%20No%3A22%2FA%20D%3A117%2C%2034522%20Esenyurt%2F%C4%B0stanbul!5e0!3m2!1str!2str!4v1702800000000!5m2!1str!2str"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.340028212324!2d28.636660275859025!3d41.01781627134916!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14b55f5e5be6e115%3A0x8c848dbaf0d49ebc!2sFerah%20Residence!5e0!3m2!1str!2str!4v1765956446633!5m2!1str!2str"
           width="100%" 
           height="300" 
           style="border:0;" 
