@@ -26,7 +26,7 @@ const defaultAddress = "Barbaros Hayrettin Paşa, 1993. Sk. Ferah Residence No:2
           width="100%" 
           height="300" 
           style="border:0;" 
-          allowfullscreen="" 
+          allowfullscreen
           loading="lazy" 
           referrerpolicy="no-referrer-when-downgrade"
           class="w-full"
