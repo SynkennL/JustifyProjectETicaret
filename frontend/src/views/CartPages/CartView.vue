@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useCartStore, useOrderStore } from "../../stores";
 import { toast } from "vue3-toastify";
 import Button from "../../components/common/Button.vue";
+import Modal from "../../components/common/Modal.vue";
 import EmptyState from "../../components/common/EmptyState.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
 import CartItem from "./components/CartItem.vue";
@@ -11,6 +13,9 @@ import CartSummary from "./components/CartSummary.vue";
 const router = useRouter();
 const cartStore = useCartStore();
 const orderStore = useOrderStore();
+
+// Checkout Modal State
+const showCheckoutModal = ref(false);
 
 const buyProduct = async (product: any) => {
   const token = localStorage.getItem("token");
@@ -35,7 +40,7 @@ const buyProduct = async (product: any) => {
   cartStore.removeItem(product.id, product.sizes);
 };
 
-const buyAll = async () => {
+const openCheckoutModal = () => {
   const token = localStorage.getItem("token");
   if (!token) {
     toast.info("Satın almak için giriş yapmalısınız!");
@@ -48,9 +53,11 @@ const buyAll = async () => {
     return;
   }
 
-  if (!confirm(`"${cartStore.items.length}" ürünü toplam ${cartStore.totalPrice} TL'ye satın almak istediğinize emin misiniz?`)) {
-    return;
-  }
+  showCheckoutModal.value = true;
+};
+
+const confirmCheckout = async () => {
+  showCheckoutModal.value = false;
 
   let successCount = 0;
   let errorMessages: string[] = [];
@@ -126,9 +133,39 @@ const buyAll = async () => {
         :total-items="cartStore.totalItems"
         :total-price="cartStore.totalPrice"
         :cart-length="cartStore.items.length"
-        @buy-all="buyAll"
+        @buy-all="openCheckoutModal"
         @continue-shopping="router.push('/')"
       />
     </div>
+
+    <!-- Satın Alma Onay Modalı -->
+    <Modal
+      v-model="showCheckoutModal"
+      title="Siparişi Onayla"
+      variant="info"
+      size="md"
+    >
+      <div class="space-y-3">
+        <p class="text-gray-700">Siparişinizi onaylamak üzeresiniz:</p>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Ürün Sayısı:</span>
+            <span class="font-medium">{{ cartStore.items.length }} ürün</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Toplam Adet:</span>
+            <span class="font-medium">{{ cartStore.totalItems }}</span>
+          </div>
+          <div class="flex justify-between text-lg border-t pt-2 mt-2">
+            <span class="font-semibold text-gray-900">Toplam:</span>
+            <span class="font-bold text-slate-900">{{ cartStore.totalPrice }} TL</span>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <Button variant="ghost" @click="showCheckoutModal = false">İptal</Button>
+        <Button variant="primary" @click="confirmCheckout">Siparişi Onayla</Button>
+      </template>
+    </Modal>
   </div>
 </template>

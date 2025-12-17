@@ -5,10 +5,12 @@ import { useProductStore, useOrderStore, useCategoryStore, useAuthStore } from "
 import { toast } from "vue3-toastify";
 import Button from "../../components/common/Button.vue";
 import Card from "../../components/common/Card.vue";
+import Modal from "../../components/common/Modal.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
 import ProductForm from "../../components/product/ProductForm.vue";
 import MyProductsList from "./components/MyProductsList.vue";
 import OrdersSection from "./components/OrdersSection.vue";
+
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -19,6 +21,10 @@ const authStore = useAuthStore();
 const myProducts = computed(() => {
   return productStore.products.filter(p => p.seller_id === authStore.userId);
 });
+
+// Delete Modal State
+const showDeleteModal = ref(false);
+const productToDelete = ref<number | null>(null);
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
@@ -74,10 +80,17 @@ async function handleProductSubmit(productData: any, sizes: string[]) {
   await productStore.fetchProducts();
 }
 
-async function deleteProduct(productId: number) {
-  if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
+function openDeleteModal(productId: number) {
+  productToDelete.value = productId;
+  showDeleteModal.value = true;
+}
 
-  const result = await productStore.deleteProduct(productId);
+async function confirmDelete() {
+  if (!productToDelete.value) return;
+
+  const result = await productStore.deleteProduct(productToDelete.value);
+  showDeleteModal.value = false;
+  productToDelete.value = null;
 
   if (result.error) {
     toast.error(result.error);
@@ -119,7 +132,7 @@ async function updateOrderStatus(orderId: number, newStatus: string) {
     <!-- Benim İlanlarım -->
     <MyProductsList
       :products="myProducts"
-      @delete-product="deleteProduct"
+      @delete-product="openDeleteModal"
     />
 
     <!-- Siparişler -->
@@ -128,5 +141,19 @@ async function updateOrderStatus(orderId: number, newStatus: string) {
       :purchased-orders="orderStore.purchasedOrders"
       @update-order-status="updateOrderStatus"
     />
+
+    <!-- Silme Onay Modalı -->
+    <Modal
+      v-model="showDeleteModal"
+      title="Ürünü Sil"
+      variant="danger"
+      size="sm"
+    >
+      <p>Bu ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+      <template #footer>
+        <Button variant="ghost" @click="showDeleteModal = false">İptal</Button>
+        <Button variant="danger" @click="confirmDelete">Evet, Sil</Button>
+      </template>
+    </Modal>
   </div>
 </template>
