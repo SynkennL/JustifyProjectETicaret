@@ -68,30 +68,15 @@ const handleRefresh = () => {
   <HeroSlider />
 
   <!-- Popüler Ürünler -->
-  <PopularProducts
-    :products="popularProducts"
-    :selected-sizes="selectedSizes"
-    :current-user-id="authStore.userId"
-    @update:selected-size="handleSizeUpdate"
-    @refresh="handleRefresh"
-  />
+  <PopularProducts :products="popularProducts" :selected-sizes="selectedSizes" :current-user-id="authStore.userId"
+    @update:selected-size="handleSizeUpdate" @refresh="handleRefresh" />
 
   <!-- Keşfedilebilir Ürünler -->
-  <DiscoverableProducts
-    :products="categoryProducts"
-    :selected-sizes="selectedSizes"
-    :current-user-id="authStore.userId"
-    :selected-category="selectedCategory"
-    :categories="categories"
-    :is-loading="productStore.categoryLoading"
-    @select-category="selectCategory"
-    @update:selected-size="handleSizeUpdate"
-    @refresh="productStore.fetchCategoryProducts(selectedCategory, 4)"
-  />
+  <DiscoverableProducts :products="categoryProducts" :selected-sizes="selectedSizes" :current-user-id="authStore.userId"
+    :selected-category="selectedCategory" :categories="categories" :is-loading="productStore.categoryLoading"
+    @select-category="selectCategory" @update:selected-size="handleSizeUpdate"
+    @refresh="productStore.fetchCategoryProducts(selectedCategory, 4)" />
 
   <!-- Popüler Kategoriler -->
-  <PopularCategories
-    :categories="categories"
-    :category-images="categoryImages"
-  />
+  <PopularCategories :categories="categories" :category-images="categoryImages" />
 </template>

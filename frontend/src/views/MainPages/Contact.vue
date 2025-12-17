@@ -7,10 +7,7 @@ import ContactMap from "./components/ContactMap.vue";
 
 <template>
   <div class="min-h-screen max-w-6xl mx-auto px-4 py-8">
-    <PageHeader 
-      title="Bizimle İletişime Geç" 
-      description="Sorularınız için bize ulaşın"
-    />
+    <PageHeader title="Bizimle İletişime Geç" description="Sorularınız için bize ulaşın" />
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- İletişim Formu -->

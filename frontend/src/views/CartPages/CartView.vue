@@ -97,54 +97,28 @@ const confirmCheckout = async () => {
     <PageHeader title="Alışveriş Sepetim">
       <template #actions>
         <div class="flex justify-end mt-4">
-          <Button 
-            v-if="!cartStore.isEmpty"
-            variant="danger"
-            @click="cartStore.clear()"
-          >
+          <Button v-if="!cartStore.isEmpty" variant="danger" @click="cartStore.clear()">
             Sepeti Temizle
           </Button>
         </div>
       </template>
     </PageHeader>
 
-    <EmptyState
-      v-if="cartStore.isEmpty"
-      title="Sepetiniz boş"
-      description="Alışverişe başlamak için ürünleri keşfedin"
-      icon="cart"
-      action-text="Alışverişe Başla"
-      action-to="/"
-    />
+    <EmptyState v-if="cartStore.isEmpty" title="Sepetiniz boş" description="Alışverişe başlamak için ürünleri keşfedin"
+      icon="cart" action-text="Alışverişe Başla" action-to="/" />
 
     <div v-else class="space-y-4">
       <!-- Ürün Listesi -->
-      <CartItem
-        v-for="item in cartStore.items"
-        :key="item.id + '-' + (item.sizes || []).join('|')"
-        :item="item"
-        @update-quantity="cartStore.updateQuantity"
-        @remove="cartStore.removeItem"
-        @buy="buyProduct"
-      />
+      <CartItem v-for="item in cartStore.items" :key="item.id + '-' + (item.sizes || []).join('|')" :item="item"
+        @update-quantity="cartStore.updateQuantity" @remove="cartStore.removeItem" @buy="buyProduct" />
 
       <!-- Sepet Özeti -->
-      <CartSummary
-        :total-items="cartStore.totalItems"
-        :total-price="cartStore.totalPrice"
-        :cart-length="cartStore.items.length"
-        @buy-all="openCheckoutModal"
-        @continue-shopping="router.push('/')"
-      />
+      <CartSummary :total-items="cartStore.totalItems" :total-price="cartStore.totalPrice"
+        :cart-length="cartStore.items.length" @buy-all="openCheckoutModal" @continue-shopping="router.push('/')" />
     </div>
 
     <!-- Satın Alma Onay Modalı -->
-    <Modal
-      v-model="showCheckoutModal"
-      title="Siparişi Onayla"
-      variant="info"
-      size="md"
-    >
+    <Modal v-model="showCheckoutModal" title="Siparişi Onayla" variant="info" size="md">
       <div class="space-y-3">
         <p class="text-gray-700">Siparişinizi onaylamak üzeresiniz:</p>
         <div class="bg-gray-50 rounded-lg p-4 space-y-2">

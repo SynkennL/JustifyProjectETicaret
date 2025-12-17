@@ -28,19 +28,11 @@ const emit = defineEmits<{
     </div>
 
     <div class="flex gap-3">
-      <Button 
-        variant="primary"
-        size="lg"
-        @click="emit('buyAll')"
-      >
+      <Button variant="primary" size="lg" @click="emit('buyAll')">
         Tümünü Satın Al ({{ cartLength }} Ürün)
       </Button>
 
-      <Button
-        variant="secondary"
-        size="lg"
-        @click="emit('continueShopping')"
-      >
+      <Button variant="secondary" size="lg" @click="emit('continueShopping')">
         Alışverişe Devam Et
       </Button>
     </div>
