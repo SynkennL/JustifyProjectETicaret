@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useCategoryStore, useProductStore, useAuthStore } from "../../stores";
 import { toast } from "vue3-toastify";
 import Button from "../../components/common/Button.vue";
+import Modal from "../../components/common/Modal.vue";
 import PageHeader from "../../components/layout/PageHeader.vue";
 import CategoryManager from "./components/CategoryManager.vue";
 import AdminProductList from "./components/AdminProductList.vue";
@@ -15,6 +16,10 @@ const authStore = useAuthStore();
 
 const catName = ref("");
 const catSlug = ref("");
+
+// Delete Modal State
+const showDeleteModal = ref(false);
+const productToDelete = ref<number | null>(null);
 
 async function load() {
   await Promise.all([
@@ -44,10 +49,17 @@ async function addCategory() {
   catSlug.value = "";
 }
 
-async function deleteProduct(productId: number) {
-  if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
+function openDeleteModal(productId: number) {
+  productToDelete.value = productId;
+  showDeleteModal.value = true;
+}
 
-  const result = await productStore.deleteProduct(productId);
+async function confirmDelete() {
+  if (!productToDelete.value) return;
+
+  const result = await productStore.deleteProduct(productToDelete.value);
+  showDeleteModal.value = false;
+  productToDelete.value = null;
   
   if (result.error) {
     toast.error(result.error);
@@ -104,7 +116,21 @@ onMounted(() => {
     <!-- Tüm Ürünler -->
     <AdminProductList
       :products="productStore.products"
-      @delete-product="deleteProduct"
+      @delete-product="openDeleteModal"
     />
+
+    <!-- Silme Onay Modalı -->
+    <Modal
+      v-model="showDeleteModal"
+      title="Ürünü Sil"
+      variant="danger"
+      size="sm"
+    >
+      <p>Bu ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+      <template #footer>
+        <Button variant="ghost" @click="showDeleteModal = false">İptal</Button>
+        <Button variant="danger" @click="confirmDelete">Evet, Sil</Button>
+      </template>
+    </Modal>
   </div>
 </template>
